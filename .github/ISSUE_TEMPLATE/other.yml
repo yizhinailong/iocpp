@@ -1,0 +1,24 @@
+name: Other
+description: Ask a question or report another iocpp issue
+title: "[Other]: "
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Build or installation question
+        - API usage question
+        - Documentation issue
+        - Project or roadmap question
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Provide the relevant context, code, commands, errors, or links.
+    validations:
+      required: true

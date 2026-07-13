@@ -1,0 +1,120 @@
+name: Bug report
+description: Report a reproducible problem with iocpp
+title: "[Bug]: "
+type: Bug
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve iocpp. Please provide a minimal reproduction and
+        enough environment information for the problem to be investigated.
+
+        iocpp currently targets Linux. Reports for unsupported platforms should use
+        the feature request form instead.
+
+  - type: input
+    id: iocpp_version
+    attributes:
+      label: iocpp version or commit
+      description: Provide the release version or full Git commit hash you tested.
+      placeholder: v0.1.0 or 0123456789abcdef...
+    validations:
+      required: true
+
+  - type: input
+    id: linux_distribution
+    attributes:
+      label: Linux distribution and kernel
+      description: Include the distribution version, architecture, and kernel version.
+      placeholder: Ubuntu 24.04, x86_64, Linux 6.8.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compiler
+    attributes:
+      label: Compiler
+      options:
+        - GCC
+        - Clang
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: compiler_version
+    attributes:
+      label: Compiler and CMake versions
+      description: Paste the output of the compiler's --version command and `cmake --version`.
+      placeholder: GCC 14.1.0; CMake 3.30.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build_type
+    attributes:
+      label: Build configuration
+      options:
+        - Debug
+        - Release
+        - RelWithDebInfo
+        - MinSizeRel
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: sanitizers
+    attributes:
+      label: Enabled sanitizers
+      description: Select every sanitizer enabled when the problem occurred.
+      options:
+        - label: AddressSanitizer (ASan)
+        - label: UndefinedBehaviorSanitizer (UBSan)
+        - label: ThreadSanitizer (TSan)
+        - label: No sanitizer
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: Describe what happened and which file I/O, task, cancellation, or backend operation was involved.
+      placeholder: A concurrent read task fails or hangs when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest complete C++ example and the commands needed to build and run it.
+      render: cpp
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: What result or behavior did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior and logs
+      description: Include errors, stack traces, sanitizer reports, and any relevant test output.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add anything else that may help, such as whether the issue is intermittent or concurrency-sensitive.
+    validations:
+      required: false

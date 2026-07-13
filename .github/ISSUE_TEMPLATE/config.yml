@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: iocpp MVP roadmap
+    url: https://github.com/yizhinailong/iocpp/blob/main/docs/TODO.md
+    about: Check whether the capability is already planned before opening an issue.

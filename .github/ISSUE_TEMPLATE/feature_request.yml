@@ -1,0 +1,71 @@
+name: Feature request
+description: Propose an iocpp file I/O or concurrency capability
+title: "[Feature]: "
+type: Feature
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the application-level use case first. iocpp is initially focused on
+        Linux file I/O, injected backends, task execution, and cooperative cancellation.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - File I/O
+        - async or concurrent task execution
+        - Cancellation
+        - Timing and sleep
+        - Backend abstraction
+        - Build, packaging, or tooling
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Explain what application or library code needs to accomplish and why the existing API is insufficient.
+      placeholder: I need to submit multiple positioned file reads while guaranteeing that none execute synchronously...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: Describe the API shape, semantics, error handling, lifetime rules, or cancellation behavior you expect.
+      placeholder: Describe the proposed types, functions, and observable behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example usage
+      description: Show how the proposed feature would be used from C++, if possible.
+      render: cpp
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe workarounds, alternative APIs, or relevant behavior in Zig std.Io or other libraries.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This request includes a concrete I/O, concurrency, cancellation, build, or documentation use case.
+          required: true
