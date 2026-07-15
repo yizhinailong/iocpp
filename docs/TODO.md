@@ -1,6 +1,6 @@
 # iocpp Linux 最小可用版本 TODO
 
-本文档把 `iocpp` 的第一个最小可用版本拆成尽量独立、可测试、适合单独提交的任务。首要目标是尽快形成一条可实际使用的 Linux 文件 I/O 与并发调用链；CI 矩阵、安装包和完整发布工程不阻塞首个可用版本。文中所有路径均相对于 iocpp 项目根目录。
+本文档把 `iocpp` 的第一个最小可用版本拆成尽量独立、可测试、适合单独提交的任务。项目统一使用 C++23；首要目标是尽快形成一条可实际使用的 Linux 文件 I/O 与并发调用链；CI 矩阵、安装包和完整发布工程不阻塞首个可用版本。文中所有路径均相对于 iocpp 项目根目录。
 
 项目当前处于独立仓库的初始化阶段，已有 `README.md`、`LICENSE`、`.gitignore`、`docs/TODO.md` 和适用于 iocpp 的 GitHub Issue Template，但尚未建立 C++ 源码目录与 CMake 构建系统。
 
@@ -34,16 +34,9 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ## 2. 已确定的基础设计
 
-- [ ] 将最低语言版本定为 C++20。
-- [ ] 将最低 CMake 版本定为 3.20。
-- [ ] 将 CMake 作为唯一受支持的构建系统，不维护 xmake、Meson 或其他构建描述。
-- [ ] 要求使用 out-of-source build。
-- [ ] 通过 CMake `Threads::Threads` target 链接平台线程库。
-- [ ] 所有警告、断言和 sanitizer 选项按 target 设置，不污染使用者的全局编译参数。
 - [ ] 使用命名空间 `iocpp`，不向 `namespace std` 添加声明。
 - [ ] 第一版不依赖 Boost、Asio、liburing 或第三方线程池。
-- [ ] 测试由 CTest 驱动，最小版本不要求联网下载测试依赖。
-- [ ] 第一版使用自定义 `result<T>`，不依赖 C++23 `std::expected`。
+- [ ] 尽管项目使用 C++23，第一版仍使用自定义 `result<T>`，不直接暴露 `std::expected`。
 - [ ] 第一版使用固定数量的工作线程。
 - [ ] 以 Zig `std.Io` 的 `async`、`concurrent` 和 Future 行为作为语义参考；与本文档冲突时以本文档的固定线程池和 C++ API 决策为准。
 - [ ] 普通文件读写优先使用 `pread`/`pwrite`，避免共享文件 offset。
@@ -56,35 +49,13 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] `task<T>` 析构时若任务尚未结束，则请求取消并等待结束。
 - [ ] 运行中的普通 `pread`/`pwrite` 第一版不保证可中断。
 - [ ] 取消采用协作式语义，不使用 `pthread_cancel` 或强制终止线程。
-- [ ] `cancellation_source`、`cancellation_token` 和取消回调封装 C++20 `std::stop_source`、`std::stop_token` 与 `std::stop_callback`。
+- [ ] `cancellation_source`、`cancellation_token` 和取消回调封装标准库 `std::stop_source`、`std::stop_token` 与 `std::stop_callback`。
 
 ## 3. 项目骨架
 
 ### 3.1 最小可用版本骨架
 
-- [ ] 创建顶层 `CMakeLists.txt`。
-- [ ] 创建 `include/iocpp/` 公共头文件目录。
-- [ ] 创建 `src/` 实现目录。
-- [ ] 创建 `tests/` 测试目录。
-- [ ] 创建 `examples/` 示例目录。
-- [ ] 创建 `include/iocpp/version.hpp`。
-- [ ] 定义初始版本号 `0.1.0`。
-- [ ] 创建静态库 target `iocpp`。
-- [ ] 创建别名 target `iocpp::iocpp`。
-- [ ] 设置 `cxx_std_20` 编译特性。
-- [ ] 使用 `find_package(Threads REQUIRED)` 并链接 `Threads::Threads`。
-- [ ] 为 GCC/Clang 启用 `-Wall -Wextra -Wpedantic`。
 - [ ] Debug 构建启用额外断言。
-- [ ] 添加 `IOCPP_BUILD_TESTS` CMake 选项。
-- [ ] 添加 `IOCPP_BUILD_EXAMPLES` CMake 选项。
-- [ ] 添加 `IOCPP_ENABLE_ASAN` CMake 选项。
-- [ ] 添加 `IOCPP_ENABLE_UBSAN` CMake 选项。
-- [ ] 添加 `IOCPP_ENABLE_TSAN` CMake 选项。
-- [ ] 防止 ASan 与 TSan 同时启用。
-- [ ] sanitizer 编译和链接选项仅附加到 iocpp、测试及示例 target。
-- [ ] 在非 Linux 平台配置时给出清晰的“不支持”错误。
-- [ ] 检测并拒绝在源码目录内生成构建文件。
-- [ ] 添加最小 smoke target，确认公共头文件可以独立包含。
 
 ### 3.2 发布前工程配置
 
@@ -600,7 +571,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 4. 同步 `open_file`、`read_at`、`write_at`。
    完成此步后形成第一个同步文件 I/O 可用里程碑。
 5. `io_backend` 与 `io_context` 转发。
-6. 基于 C++20 stop token 的 cancellation source/token。
+6. 基于标准库 stop token 的 cancellation source/token。
 7. 单消费者 `task<T>` 状态机，不接线程池，先用测试直接驱动。
 8. 固定线程池和 FIFO 任务队列。
 9. `async` eager 回退。
