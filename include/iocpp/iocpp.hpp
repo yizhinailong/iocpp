@@ -52,6 +52,13 @@ namespace iocpp {
             m_context.get().Sleep(duration);
         }
 
+        auto SleepUntil(Timestamp deadline) -> void {
+            auto const now = this->Now();
+            if (deadline > now) {
+                this->Sleep(deadline - now);
+            }
+        }
+
     private:
         std::reference_wrapper<IoContext> m_context;
     };

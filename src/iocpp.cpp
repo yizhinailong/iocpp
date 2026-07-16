@@ -28,5 +28,13 @@ auto main() -> int {
         assert(after - before == std::chrono::seconds(10));
     }
 
+    {
+        iocpp::TestContext test_context;
+        iocpp::Io io(test_context);
+        auto const deadline = io.Now() + std::chrono::seconds(10);
+        io.SleepUntil(deadline);
+        assert(io.Now() == deadline);
+    }
+
     return 0;
 }
