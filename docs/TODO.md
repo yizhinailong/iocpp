@@ -36,7 +36,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 - [ ] 使用命名空间 `iocpp`，不向 `namespace std` 添加声明。
 - [ ] 第一版不依赖 Boost、Asio、liburing 或第三方线程池。
-- [ ] 尽管项目使用 C++23，第一版仍使用自定义 `result<T>`，不直接暴露 `std::expected`。
+- [x] 项目使用 C++23，以 `std::expected<T, Error>` 作为结果类型，并通过 `Result<T>` 别名暴露。
 - [ ] 第一版使用固定数量的工作线程。
 - [ ] 以 Zig `std.Io` 的 `async`、`concurrent` 和 Future 行为作为语义参考；与本文档冲突时以本文档的固定线程池和 C++ API 决策为准。
 - [ ] 普通文件读写优先使用 `pread`/`pwrite`，避免共享文件 offset。
@@ -97,25 +97,17 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] 为 errno 映射编写表驱动单元测试。
 - [ ] 明确 `iocpp::error` 只表示系统调用、参数、资源和任务提交错误，不承载 callable 抛出的 C++ 异常。
 
-### 4.2 result<T>
+### 4.2 `Result<T>`（基于 `std::expected`）
 
 - [ ] 创建 `include/iocpp/result.hpp`。
-- [ ] 实现 `result<T>` 的成功值构造。
-- [ ] 实现 `result<T>` 的错误构造。
-- [ ] 实现 `result<void>` 特化。
-- [ ] 实现 move-only 值类型支持。
-- [ ] 实现不可默认构造值类型支持。
-- [ ] 实现 `has_value()`。
-- [ ] 实现显式 `operator bool()`。
-- [ ] 实现 `value()` 的 `&`、`const&` 和 `&&` 重载。
-- [ ] 实现 `error()` 的 `&`、`const&` 和 `&&` 重载。
-- [ ] 实现 `operator*` 和 `operator->`。
-- [ ] 定义 `bad_result_access`；值访问失败 result 或错误访问成功 result 时抛出该异常。
-- [ ] 为 `result<int>` 编写测试。
-- [ ] 为 `result<void>` 编写测试。
-- [ ] 为 `result<std::unique_ptr<int>>` 编写测试。
-- [ ] 为成功 result 的错误访问和失败 result 的值访问编写 `bad_result_access` 测试。
-- [ ] 为构造、移动和析构计数编写生命周期测试。
+- [ ] 定义 `template<typename T> using Result = std::expected<T, Error>`。
+- [ ] 验证 `Result<int>` 的成功值构造。
+- [ ] 验证通过 `std::unexpected<Error>` 构造失败结果。
+- [ ] 验证 `Result<void>` 的成功和失败结果。
+- [ ] 验证 `Result<std::unique_ptr<int>>` 等 move-only 值类型。
+- [ ] 验证 `has_value()` 和显式 `operator bool()`。
+- [ ] 验证 `value()`、`error()`、`operator*` 和 `operator->`。
+- [ ] 验证错误访问抛出 `std::bad_expected_access<Error>`。
 
 ### 4.3 Buffer 类型约定
 
@@ -289,7 +281,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] 定义 `task_error`，区分取消、callable 异常和无效 task。
 - [ ] 定义 `task_result<T>`。
 - [ ] 定义 `task_result<void>`。
-- [ ] 明确 `task_result<T>` 与普通 `result<T>` 分离：前者保存 task 终态，后者保存操作和提交错误。
+- [ ] 明确 `task_result<T>` 与普通 `Result<T>` 分离：前者保存 task 终态，后者保存操作和提交错误。
 
 ### 8.2 task<T> API
 
@@ -566,7 +558,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 按以下顺序推进，每完成一项都保持 CMake 配置、构建和已有测试可运行：
 
 1. 项目骨架和编译选项。
-2. `error` 与 `result<T>`。
+2. `Error` 与基于 `std::expected` 的 `Result<T>`。
 3. move-only `file`。
 4. 同步 `open_file`、`read_at`、`write_at`。
    完成此步后形成第一个同步文件 I/O 可用里程碑。
