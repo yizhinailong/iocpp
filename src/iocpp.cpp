@@ -46,5 +46,12 @@ auto main() -> int {
         assert(first.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
     }
 
+    {
+        iocpp::TestContext test_context;
+        iocpp::Io const io(test_context);
+        io.Sleep(std::chrono::seconds(5));
+        assert(io.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+    }
+
     return 0;
 }

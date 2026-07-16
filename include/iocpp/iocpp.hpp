@@ -48,11 +48,11 @@ namespace iocpp {
             return m_context.get().Now();
         }
 
-        auto Sleep(Duration duration) -> void {
+        auto Sleep(Duration duration) const -> void {
             m_context.get().Sleep(duration);
         }
 
-        auto SleepUntil(Timestamp deadline) -> void {
+        auto SleepUntil(Timestamp deadline) const -> void {
             auto const now = this->Now();
             if (deadline > now) {
                 this->Sleep(deadline - now);
