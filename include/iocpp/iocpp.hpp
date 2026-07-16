@@ -14,18 +14,28 @@ namespace iocpp {
         virtual ~IoContext() = default;
 
         virtual auto Now() const -> Timestamp = 0;
-        virtual auto Sleep(Duration duration) const -> void = 0;
+        virtual auto Sleep(Duration duration) -> void = 0;
     };
 
-    struct ThreadContext : IoContext {
-        virtual ~ThreadContext() = default;
-
+    struct ThreadContext final : IoContext {
         auto Now() const -> Timestamp override {
             return Clock::now();
         }
 
-        auto Sleep(Duration duration) const -> void override {
+        auto Sleep(Duration duration) -> void override {
             std::this_thread::sleep_for(duration);
+        }
+    };
+
+    struct TestContext final : IoContext {
+        Timestamp current_time{};
+
+        auto Now() const -> Timestamp override {
+            return current_time;
+        }
+
+        auto Sleep(Duration duration) -> void override {
+            this->current_time += duration;
         }
     };
 
@@ -38,7 +48,7 @@ namespace iocpp {
             return m_context.get().Now();
         }
 
-        auto Sleep(Duration duration) const -> void {
+        auto Sleep(Duration duration) -> void {
             m_context.get().Sleep(duration);
         }
 
