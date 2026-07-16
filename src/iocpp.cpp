@@ -17,6 +17,14 @@ auto main() -> int {
     }
 
     {
+        iocpp::Result<void> success{};
+        iocpp::Result<int> failure = std::unexpected<iocpp::Error>(iocpp::Error{
+            .code = iocpp::ErrorCode::Unsupported,
+            .operation = iocpp::Operation::Sleep,
+        });
+    }
+
+    {
         iocpp::ThreadContext thread_context;
         iocpp::Io io{ thread_context };
 

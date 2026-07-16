@@ -1,5 +1,7 @@
 #pragma once
 
+#include <expected>
+
 namespace iocpp {
     enum class Operation {
         Sleep
@@ -15,4 +17,7 @@ namespace iocpp {
         ErrorCode code;
         Operation operation;
     };
+
+    template <typename T>
+    using Result = std::expected<T, Error>;
 } // namespace iocpp
