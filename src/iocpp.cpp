@@ -3,7 +3,13 @@
 #include <cassert>
 #include <print>
 
+#include "iocpp/error.hpp"
+
 auto main() -> int {
+
+    {
+        auto const error = iocpp::Error::Unsupported;
+    }
 
     {
         iocpp::ThreadContext thread_context;
