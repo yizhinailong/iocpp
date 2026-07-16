@@ -8,7 +8,12 @@
 auto main() -> int {
 
     {
-        auto const error = iocpp::Error::Unsupported;
+        auto const error = iocpp::Error{
+            .code = iocpp::ErrorCode::Unsupported,
+            .operation = iocpp::Operation::Sleep
+        };
+        assert(error.code == iocpp::ErrorCode::Unsupported);
+        assert(error.operation == iocpp::Operation::Sleep);
     }
 
     {
