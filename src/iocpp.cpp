@@ -36,5 +36,15 @@ auto main() -> int {
         assert(io.Now() == deadline);
     }
 
+    {
+        iocpp::TestContext test_context;
+        iocpp::Io first(test_context);
+        iocpp::Io second = first;
+
+        second.Sleep(std::chrono::seconds(5));
+        assert(first.Now() == second.Now());
+        assert(first.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+    }
+
     return 0;
 }
