@@ -1,72 +1,65 @@
+#include <gtest/gtest.h>
+
 import std;
 import iocpp;
 
 namespace {
 
-    auto expect(
-        bool condition,
-        std::source_location location = std::source_location::current()
-    ) -> void {
-        if (condition) {
-            return;
-        }
+    TEST(IocppModuleTest, ReexportsErrorModule) {
+        iocpp::Result<void> result{};
 
-        std::println(
-            "expectation failed at {}:{}",
-            location.file_name(),
-            location.line()
-        );
-        std::abort();
+        EXPECT_TRUE(result.has_value());
     }
 
-} // namespace
-
-auto main() -> int {
-    iocpp::Result<void> result{};
-    expect(result.has_value());
-
-    {
+    TEST(IoTest, SleepAdvancesTime) {
         iocpp::TestContext test_context;
         iocpp::Io io{ test_context };
 
         auto const before = io.Now();
         io.Sleep(std::chrono::seconds(10));
         auto const after = io.Now();
-        expect(after - before == std::chrono::seconds(10));
+
+        EXPECT_EQ(after - before, std::chrono::seconds(10));
     }
 
-    {
+    TEST(IoTest, SleepUntilAdvancesToDeadline) {
         iocpp::TestContext test_context;
         iocpp::Io io{ test_context };
         auto const deadline = io.Now() + std::chrono::seconds(10);
+
         io.SleepUntil(deadline);
-        expect(io.Now() == deadline);
+
+        EXPECT_EQ(io.Now(), deadline);
     }
 
-    {
+    TEST(IoTest, SleepUntilIgnoresPastDeadline) {
         iocpp::TestContext test_context;
         iocpp::Io io{ test_context };
         auto const deadline = io.Now() - std::chrono::seconds(10);
+
         io.SleepUntil(deadline);
-        expect(io.Now() == iocpp::Timestamp{});
+
+        EXPECT_EQ(io.Now(), iocpp::Timestamp{});
     }
 
-    {
+    TEST(IoTest, CopiesShareContext) {
         iocpp::TestContext test_context;
         iocpp::Io first{ test_context };
         iocpp::Io second = first;
 
         second.Sleep(std::chrono::seconds(5));
-        expect(first.Now() == second.Now());
-        expect(first.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+
+        EXPECT_EQ(first.Now(), second.Now());
+        EXPECT_EQ(first.Now(), iocpp::Timestamp{} + std::chrono::seconds(5));
     }
 
-    {
+    TEST(IoTest, ConstHandleCanSleep) {
         iocpp::TestContext test_context;
         iocpp::Io const io{ test_context };
+
         io.Sleep(std::chrono::seconds(5));
-        expect(io.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+
+        EXPECT_EQ(io.Now(), iocpp::Timestamp{} + std::chrono::seconds(5));
     }
 
-    return 0;
-}
+} // namespace

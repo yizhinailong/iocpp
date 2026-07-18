@@ -1,55 +1,56 @@
+#include <gtest/gtest.h>
+
 import std;
 import iocpp.error;
 
 namespace {
 
-    auto expect(
-        bool condition,
-        std::source_location location = std::source_location::current()
-    ) -> void {
-        if (condition) {
-            return;
-        }
+    auto make_error() -> iocpp::Error {
+        return {
+            .code = iocpp::ErrorCode::Unsupported,
+            .operation = iocpp::Operation::Sleep,
+        };
+    }
 
-        std::println(
-            "expectation failed at {}:{}",
-            location.file_name(),
-            location.line()
-        );
-        std::abort();
+    TEST(ErrorTest, StoresContext) {
+        auto const error = make_error();
+
+        EXPECT_EQ(error.code, iocpp::ErrorCode::Unsupported);
+        EXPECT_EQ(error.operation, iocpp::Operation::Sleep);
+    }
+
+    TEST(ResultTest, HoldsValue) {
+        iocpp::Result<int> result{ 42 };
+
+        ASSERT_TRUE(result.has_value());
+        EXPECT_EQ(result.value(), 42);
+    }
+
+    TEST(ResultTest, HoldsError) {
+        iocpp::Result<int> result = std::unexpected<iocpp::Error>{ make_error() };
+
+        ASSERT_FALSE(result.has_value());
+        EXPECT_EQ(result.error().code, iocpp::ErrorCode::Unsupported);
+        EXPECT_EQ(result.error().operation, iocpp::Operation::Sleep);
+    }
+
+    TEST(ResultTest, SupportsVoid) {
+        iocpp::Result<void> success{};
+        iocpp::Result<void> failure = std::unexpected<iocpp::Error>{ make_error() };
+
+        EXPECT_TRUE(success.has_value());
+        EXPECT_FALSE(failure.has_value());
+    }
+
+    TEST(ResultTest, SupportsMoveOnlyValue) {
+        iocpp::Result<std::unique_ptr<int>> result{ std::make_unique<int>(42) };
+
+        ASSERT_TRUE(result.has_value());
+        EXPECT_EQ(**result, 42);
+
+        auto moved_value = std::move(result).value();
+        ASSERT_NE(moved_value, nullptr);
+        EXPECT_EQ(*moved_value, 42);
     }
 
 } // namespace
-
-auto main() -> int {
-    auto const error = iocpp::Error{
-        .code = iocpp::ErrorCode::Unsupported,
-        .operation = iocpp::Operation::Sleep
-    };
-    expect(error.code == iocpp::ErrorCode::Unsupported);
-    expect(error.operation == iocpp::Operation::Sleep);
-
-    iocpp::Result<int> success{ 42 };
-    expect(success.has_value());
-    expect(success.value() == 42);
-
-    iocpp::Result<int> failure = std::unexpected<iocpp::Error>{ error };
-    expect(!failure.has_value());
-    expect(failure.error().code == iocpp::ErrorCode::Unsupported);
-    expect(failure.error().operation == iocpp::Operation::Sleep);
-
-    iocpp::Result<void> void_success{};
-    expect(void_success.has_value());
-
-    iocpp::Result<void> void_failure = std::unexpected<iocpp::Error>{ error };
-    expect(!void_failure.has_value());
-
-    iocpp::Result<std::unique_ptr<int>> move_only{ std::make_unique<int>(42) };
-    expect(move_only.has_value());
-    expect(**move_only == 42);
-
-    auto moved_value = std::move(move_only).value();
-    expect(*moved_value == 42);
-
-    return 0;
-}

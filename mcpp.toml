@@ -8,3 +8,6 @@ license     = "MIT"
 [targets.iocpp]
 kind = "bin"
 main = "src/main.cpp"
+
+[dev-dependencies]
+compat.gtest = "1.15.2"
