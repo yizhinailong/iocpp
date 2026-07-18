@@ -66,7 +66,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 4.1 错误模型
 
-- [ ] 在 `src/iocpp.cppm` 中定义错误模型。
+- [ ] 在 `src/iocpp/error.cppm` 中定义错误模型。
 - [ ] 定义 `enum class errc`。
 - [ ] 添加 `invalid_argument`。
 - [ ] 添加 `bad_file_descriptor`。
@@ -99,7 +99,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 4.2 `Result<T>`（基于 `std::expected`）
 
-- [ ] 在 `src/iocpp.cppm` 中定义结果类型。
+- [ ] 在 `src/iocpp/error.cppm` 中定义结果类型。
 - [ ] 定义 `template<typename T> using Result = std::expected<T, Error>`。
 - [ ] 验证 `Result<int>` 的成功值构造。
 - [ ] 验证通过 `std::unexpected<Error>` 构造失败结果。
