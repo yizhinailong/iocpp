@@ -2,7 +2,7 @@
 
 本文档把 `iocpp` 的第一个最小可用版本拆成尽量独立、可测试、适合单独提交的任务。项目统一使用 C++23；首要目标是尽快形成一条可实际使用的 Linux 文件 I/O 与并发调用链；CI 矩阵、安装包和完整发布工程不阻塞首个可用版本。文中所有路径均相对于 iocpp 项目根目录。
 
-项目当前处于独立仓库的初始化阶段，已有 `README.md`、`LICENSE`、`.gitignore`、`docs/TODO.md` 和适用于 iocpp 的 GitHub Issue Template，但尚未建立 C++ 源码目录与 CMake 构建系统。
+项目当前处于独立仓库的初始化阶段，已有 C++ 源码目录、`mcpp.toml`、`README.md`、`LICENSE`、`.gitignore`、`docs/TODO.md` 和适用于 iocpp 的 GitHub Issue Template。
 
 ## 1. MVP 目标
 
@@ -27,10 +27,10 @@ io_context
 - 能取消尚未开始的任务。
 - 能取消正在等待的 `sleep_for`。
 - 基础测试在普通 Debug 构建、AddressSanitizer 和 UndefinedBehaviorSanitizer 下通过。
-- 提供可复制运行的 CMake 构建命令和完整文件异步示例。
+- 提供可复制运行的 mcpp 构建命令和完整文件异步示例。
 - 不要求支持网络、io_uring、epoll、目录遍历、进程或跨平台。
 
-ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` consumer 测试属于发布前强化，不阻塞首个可用版本。
+ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package consumer 测试属于发布前强化，不阻塞首个可用版本。
 
 ## 2. 已确定的基础设计
 
@@ -55,18 +55,18 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 3.1 最小可用版本骨架
 
+- [x] 使用 `mcpp.toml` 配置 C++23 构建。
 - [ ] Debug 构建启用额外断言。
 
 ### 3.2 发布前工程配置
 
-- [ ] 仅在确有复用需求时创建 `cmake/` 辅助模块目录。
 - [ ] 添加 `.clang-tidy` 基础配置。
 
 ## 4. 公共基础类型
 
 ### 4.1 错误模型
 
-- [ ] 创建 `include/iocpp/error.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义错误模型。
 - [ ] 定义 `enum class errc`。
 - [ ] 添加 `invalid_argument`。
 - [ ] 添加 `bad_file_descriptor`。
@@ -99,7 +99,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 4.2 `Result<T>`（基于 `std::expected`）
 
-- [ ] 创建 `include/iocpp/result.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义结果类型。
 - [ ] 定义 `template<typename T> using Result = std::expected<T, Error>`。
 - [ ] 验证 `Result<int>` 的成功值构造。
 - [ ] 验证通过 `std::unexpected<Error>` 构造失败结果。
@@ -111,7 +111,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 4.3 Buffer 类型约定
 
-- [ ] 创建 `include/iocpp/buffer.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 buffer 类型。
 - [ ] 定义可写 buffer 为 `std::span<std::byte>`。
 - [ ] 定义只读 buffer 为 `std::span<const std::byte>`。
 - [ ] 提供从 `std::span<char>` 转换到字节 span 的辅助函数。
@@ -124,7 +124,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 5.1 file 类型
 
-- [ ] 创建 `include/iocpp/file.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 file 类型。
 - [ ] 创建 `src/file_linux.cpp`。
 - [ ] 定义无效 native handle 为 `-1`。
 - [ ] 实现默认构造的空 `file`。
@@ -199,7 +199,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 6.1 backend 接口
 
-- [ ] 创建 `include/iocpp/io_backend.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 io_backend 接口。
 - [ ] 定义 `io_backend` 抽象基类。
 - [ ] 为 `io_backend` 添加虚析构函数。
 - [ ] 添加 `open_file` 虚函数。
@@ -216,7 +216,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 6.2 io_context
 
-- [ ] 创建 `include/iocpp/io_context.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 io_context 接口。
 - [ ] 实现从 `io_backend&` 构造 `io_context`。
 - [ ] 允许复制和移动 `io_context`。
 - [ ] 添加 `backend()` 内部访问器。
@@ -234,7 +234,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 7.1 cancellation_source/token
 
-- [ ] 创建 `include/iocpp/cancellation.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 cancellation 类型。
 - [ ] 定义 `cancellation_source`。
 - [ ] 定义轻量、可复制的 `cancellation_token`。
 - [ ] 使用 `std::stop_source` 和 `std::stop_token` 保存和共享取消状态。
@@ -265,7 +265,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 8.1 类型设计
 
-- [ ] 创建 `include/iocpp/task.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 task 类型。
 - [ ] 创建内部 `task_state_base`。
 - [ ] 创建模板 `task_state<T>`。
 - [ ] 创建 `task_state<void>` 特化。
@@ -334,7 +334,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ### 9.1 生命周期
 
-- [ ] 创建 `include/iocpp/threaded_backend.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义 threaded_backend。
 - [ ] 创建 `src/threaded_backend.cpp`。
 - [ ] 定义 `threaded_backend_options`。
 - [ ] 添加 `worker_count`。
@@ -418,7 +418,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ## 10. 可取消 sleep
 
-- [ ] 创建 `include/iocpp/time.hpp`。
+- [ ] 在 `src/iocpp.cppm` 中定义时间相关类型。
 - [ ] 创建 `src/time_linux.cpp`。
 - [ ] 定义 `sleep_for(io_context, duration, cancellation_token)`。
 - [ ] 定义 `sleep_until(io_context, steady_clock::time_point, cancellation_token)`。
@@ -450,7 +450,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] 校验读取内容。
 - [ ] 显式关闭文件并检查结果。
 - [ ] 删除临时文件。
-- [ ] 给示例添加 CTest smoke test。
+- [ ] 给示例添加 `mcpp test` smoke test。
 
 ## 12. 最小可用版本集成测试
 
@@ -495,7 +495,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] 添加 sanitizer 构建命令。
 - [ ] 添加最小文件 I/O 示例。
 - [ ] 添加异步任务示例。
-- [ ] 确保每个公共头文件可以单独编译。
+- [ ] 确保 `iocpp` 模块可以被最小 consumer 独立导入。
 
 ### 13.1 发布前文档完善
 
@@ -513,12 +513,12 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 - [ ] 添加 TSan CI 配置。
 - [ ] 在 CI 中运行 clang-format 检查。
 - [ ] 在 CI 中运行 clang-tidy。
-- [ ] 在 CI 中运行全部 CTest。
-- [ ] 确认公共头文件不依赖源码目录中的私有头文件。
-- [ ] 确认安装后的 CMake package 可以被 `find_package(iocpp)` 使用。
-- [ ] 添加 install rules。
-- [ ] 添加 `iocppConfig.cmake`。
-- [ ] 添加版本配置文件。
+- [ ] 在 CI 中运行全部 `mcpp test` 测试。
+- [ ] 确认公共模块接口不依赖未导出的私有声明。
+- [ ] 确认发布后的 mcpp package 可以被外部项目声明为依赖。
+- [ ] 完善 `mcpp.toml` 发布元数据。
+- [ ] 使用 `mcpp publish --dry-run` 验证发布内容。
+- [ ] 使用 `mcpp pack` 验证发布归档。
 - [ ] 添加最小外部 consumer 测试。
 - [ ] 检查 GitHub、Conan 和 vcpkg 中的 `iocpp` 名称冲突。
 - [ ] 确认许可证和第三方声明。
@@ -555,7 +555,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、安装规则和 `find_package` c
 
 ## 16. 推荐实施顺序
 
-按以下顺序推进，每完成一项都保持 CMake 配置、构建和已有测试可运行：
+按以下顺序推进，每完成一项都保持 mcpp 配置、构建和已有测试可运行：
 
 1. 项目骨架和编译选项。
 2. `Error` 与基于 `std::expected` 的 `Result<T>`。

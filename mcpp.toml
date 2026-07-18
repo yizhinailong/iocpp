@@ -1,0 +1,10 @@
+[package]
+name        = "iocpp"
+version     = "0.1.0"
+standard    = "c++23"
+description = "A C++ implementation inspired by Zig std.Io"
+license     = "MIT"
+
+[targets.iocpp]
+kind = "bin"
+main = "src/main.cpp"

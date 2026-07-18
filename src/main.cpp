@@ -1,9 +1,15 @@
-#include "iocpp/iocpp.hpp"
+import std;
+import iocpp;
 
-#include <cassert>
-#include <print>
+namespace {
 
-#include "iocpp/error.hpp"
+    auto expect(bool condition) -> void {
+        if (!condition) {
+            std::abort();
+        }
+    }
+
+} // namespace
 
 auto main() -> int {
 
@@ -12,8 +18,8 @@ auto main() -> int {
             .code = iocpp::ErrorCode::Unsupported,
             .operation = iocpp::Operation::Sleep
         };
-        assert(error.code == iocpp::ErrorCode::Unsupported);
-        assert(error.operation == iocpp::Operation::Sleep);
+        expect(error.code == iocpp::ErrorCode::Unsupported);
+        expect(error.operation == iocpp::Operation::Sleep);
     }
 
     {
@@ -22,6 +28,8 @@ auto main() -> int {
             .code = iocpp::ErrorCode::Unsupported,
             .operation = iocpp::Operation::Sleep,
         });
+        expect(success.has_value());
+        expect(!failure.has_value());
     }
 
     {
@@ -44,32 +52,32 @@ auto main() -> int {
         auto const before = io.Now();
         io.Sleep(std::chrono::seconds(10));
         auto const after = io.Now();
-        assert(after - before == std::chrono::seconds(10));
+        expect(after - before == std::chrono::seconds(10));
     }
 
     {
         iocpp::TestContext test_context;
-        iocpp::Io io(test_context);
+        iocpp::Io io{ test_context };
         auto const deadline = io.Now() + std::chrono::seconds(10);
         io.SleepUntil(deadline);
-        assert(io.Now() == deadline);
+        expect(io.Now() == deadline);
     }
 
     {
         iocpp::TestContext test_context;
-        iocpp::Io first(test_context);
+        iocpp::Io first{ test_context };
         iocpp::Io second = first;
 
         second.Sleep(std::chrono::seconds(5));
-        assert(first.Now() == second.Now());
-        assert(first.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+        expect(first.Now() == second.Now());
+        expect(first.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
     }
 
     {
         iocpp::TestContext test_context;
-        iocpp::Io const io(test_context);
+        iocpp::Io const io{ test_context };
         io.Sleep(std::chrono::seconds(5));
-        assert(io.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
+        expect(io.Now() == iocpp::Timestamp{} + std::chrono::seconds(5));
     }
 
     return 0;

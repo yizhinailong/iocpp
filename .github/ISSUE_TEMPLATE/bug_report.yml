@@ -44,11 +44,11 @@ body:
       required: true
 
   - type: input
-    id: compiler_version
+    id: toolchain_versions
     attributes:
-      label: Compiler and CMake versions
-      description: Paste the output of the compiler's --version command and `cmake --version`.
-      placeholder: GCC 14.1.0; CMake 3.30.0
+      label: mcpp and compiler versions
+      description: Paste the output of `mcpp --version` and the compiler's --version command.
+      placeholder: mcpp 0.0.94; GCC 16.1.0
     validations:
       required: true
 
@@ -57,10 +57,9 @@ body:
     attributes:
       label: Build configuration
       options:
-        - Debug
-        - Release
-        - RelWithDebInfo
-        - MinSizeRel
+        - dev
+        - release
+        - dist
         - Other
     validations:
       required: true

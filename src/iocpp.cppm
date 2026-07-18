@@ -1,10 +1,26 @@
-#pragma once
+export module iocpp;
 
-#include <chrono>
-#include <functional>
-#include <thread>
+import std;
 
-namespace iocpp {
+export namespace iocpp {
+
+    enum class Operation {
+        Sleep
+    };
+
+    enum class ErrorCode {
+        InvalidArgument,
+        IoError,
+        Unsupported
+    };
+
+    struct Error {
+        ErrorCode code;
+        Operation operation;
+    };
+
+    template <typename T>
+    using Result = std::expected<T, Error>;
 
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;

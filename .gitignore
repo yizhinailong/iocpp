@@ -1,21 +1,11 @@
-# Build directories
+# mcpp build output
+/target/
+compile_commands.json
+
+# Other local build directories
 /build/
 /build-*/
-/cmake-build-*/
 /out/
-
-# CMake and Ninja generated files
-CMakeCache.txt
-CMakeFiles/
-CTestTestfile.cmake
-cmake_install.cmake
-compile_commands.json
-install_manifest.txt
-Testing/
-.ninja_deps
-.ninja_log
-build.ninja
-rules.ninja
 
 # C and C++ build artifacts
 *.a
