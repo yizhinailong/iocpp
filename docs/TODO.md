@@ -101,10 +101,10 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 - [ ] 在 `src/iocpp/error.cppm` 中定义结果类型。
 - [ ] 定义 `template<typename T> using Result = std::expected<T, Error>`。
-- [ ] 验证 `Result<int>` 的成功值构造。
-- [ ] 验证通过 `std::unexpected<Error>` 构造失败结果。
-- [ ] 验证 `Result<void>` 的成功和失败结果。
-- [ ] 验证 `Result<std::unique_ptr<int>>` 等 move-only 值类型。
+- [x] 验证 `Result<int>` 的成功值构造。
+- [x] 验证通过 `std::unexpected<Error>` 构造失败结果。
+- [x] 验证 `Result<void>` 的成功和失败结果。
+- [x] 验证 `Result<std::unique_ptr<int>>` 等 move-only 值类型。
 - [ ] 验证 `has_value()` 和显式 `operator bool()`。
 - [ ] 验证 `value()`、`error()`、`operator*` 和 `operator->`。
 - [ ] 验证错误访问抛出 `std::bad_expected_access<Error>`。
