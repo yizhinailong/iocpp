@@ -1,5 +1,5 @@
 # mcpp build output
-/target/
+target/
 compile_commands.json
 
 # Other local build directories

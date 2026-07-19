@@ -11,6 +11,13 @@ mcpp build
 mcpp test
 ```
 
+## 示例
+
+```bash
+cd example
+mcpp run file-example
+```
+
 ## 开发文档
 
 - [未完成工作](docs/TODO.md)

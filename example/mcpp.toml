@@ -1,0 +1,11 @@
+[package]
+name     = "iocpp-file-example"
+version  = "0.1.0"
+standard = "c++23"
+
+[dependencies]
+iocpp = { path = ".." }
+
+[targets.file-example]
+kind = "bin"
+main = "file.cpp"
