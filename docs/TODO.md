@@ -2,7 +2,9 @@
 
 本文档把 `iocpp` 的第一个最小可用版本拆成尽量独立、可测试、适合单独提交的任务。项目统一使用 C++23；首要目标是尽快形成一条可实际使用的 Linux 文件 I/O 与并发调用链；CI 矩阵、安装包和完整发布工程不阻塞首个可用版本。文中所有路径均相对于 iocpp 项目根目录。
 
-项目当前处于独立仓库的初始化阶段，已有 C++ 源码目录、`mcpp.toml`、`README.md`、`LICENSE`、`.gitignore`、`docs/TODO.md` 和适用于 iocpp 的 GitHub Issue Template。
+项目当前处于独立仓库的初始化阶段，已有 C++ 源码目录、`mcpp.toml`、`README.md`、`LICENSE`、`.gitignore`、`docs/TODO.md`、`docs/ARCHIVE.md` 和适用于 iocpp 的 GitHub Issue Template。
+
+已经实现的功能统一移至 [`ARCHIVE.md`](ARCHIVE.md)。本文档只保留尚未完成的工作。
 
 ## 1. MVP 目标
 
@@ -36,7 +38,6 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 - [ ] 使用命名空间 `iocpp`，不向 `namespace std` 添加声明。
 - [ ] 第一版不依赖 Boost、Asio、liburing 或第三方线程池。
-- [x] 项目使用 C++23，以 `std::expected<T, Error>` 作为结果类型，并通过 `Result<T>` 别名暴露。
 - [ ] 第一版使用固定数量的工作线程。
 - [ ] 以 Zig `std.Io` 的 `async`、`concurrent` 和 Future 行为作为语义参考；与本文档冲突时以本文档的固定线程池和 C++ API 决策为准。
 - [ ] 普通文件读写优先使用 `pread`/`pwrite`，避免共享文件 offset。
@@ -55,7 +56,6 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 3.1 最小可用版本骨架
 
-- [x] 使用 `mcpp.toml` 配置 C++23 构建。
 - [ ] Debug 构建启用额外断言。
 
 ### 3.2 发布前工程配置
@@ -66,31 +66,11 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 4.1 错误模型
 
-- [x] 在 `src/iocpp/error.cppm` 中定义错误模型。
-- [x] 定义 `enum class ErrorCode`。
-- [x] 添加 `Unsupported`。
-- [x] 定义 `enum class Operation`，记录失败操作类型。
-- [x] 为 `Operation` 添加 `Sleep`。
-- [x] 定义 `iocpp::Error`，保存 `ErrorCode` 和 `Operation`。
-- [x] 使用 `Result<T>` 显式判断成功或失败，不为 `Error` 添加语义含糊的 `operator bool`。
 - [ ] 实现新功能时，只为实际出现的失败路径添加对应的 `ErrorCode` 和 `Operation`，不预先穷举。
 - [ ] 首次接入 Linux 系统调用时保存原始 `errno`，并为实际使用的 errno 添加集中映射和表驱动测试。
 - [ ] 在调用方需要错误文本时为 `iocpp::Error` 提供 `Message()`。
-- [x] 明确 `iocpp::Error` 只表示系统调用、参数、资源和任务提交错误，不承载 callable 抛出的 C++ 异常。
 
-### 4.2 `Result<T>`（基于 `std::expected`）
-
-- [x] 在 `src/iocpp/error.cppm` 中定义结果类型。
-- [x] 定义 `template<typename T> using Result = std::expected<T, Error>`。
-- [x] 验证 `Result<int>` 的成功值构造。
-- [x] 验证通过 `std::unexpected<Error>` 构造失败结果。
-- [x] 验证 `Result<void>` 的成功和失败结果。
-- [x] 验证 `Result<std::unique_ptr<int>>` 等 move-only 值类型。
-- [x] 验证 `has_value()` 和显式 `operator bool()`。
-- [x] 验证 `value()`、`error()`、`operator*` 和 `operator->`。
-- [x] 验证错误访问抛出 `std::bad_expected_access<Error>`。
-
-### 4.3 Buffer 类型约定
+### 4.2 Buffer 类型约定
 
 - [ ] 在 `src/iocpp.cppm` 中定义 buffer 类型。
 - [ ] 定义可写 buffer 为 `std::span<std::byte>`。
