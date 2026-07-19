@@ -85,27 +85,26 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 5.1 file 类型
 
-- [ ] 在 `src/iocpp.cppm` 中定义 file 类型。
-- [ ] 创建 `src/file_linux.cpp`。
-- [ ] 定义无效 native handle 为 `-1`。
-- [ ] 实现默认构造的空 `file`。
-- [ ] 删除拷贝构造函数。
-- [ ] 删除拷贝赋值运算符。
-- [ ] 实现移动构造函数。
-- [ ] 实现移动赋值运算符。
-- [ ] 实现析构关闭句柄。
-- [ ] 实现 `valid()`。
-- [ ] 实现 `native_handle()`。
-- [ ] 实现 `release()`，转移 native handle 所有权。
-- [ ] 实现 `reset()`，关闭旧句柄并接管新句柄。
-- [ ] 保证移动后的对象处于无效但可析构状态。
-- [ ] 调用 `close` 前先使对象中的 fd 失效；Linux 上 `close` 返回 `EINTR` 时不重试，避免误关已复用的 fd。
-- [ ] 明确析构中的 close 错误不会抛异常。
+- [x] 在 `src/iocpp/file.cppm` 中定义 `File` 类型，并由 `iocpp` 模块重新导出。
+- [x] 定义无效 native handle 为 `-1`。
+- [x] 实现默认构造的空 `File`。
+- [x] 删除拷贝构造函数。
+- [x] 删除拷贝赋值运算符。
+- [x] 实现移动构造函数。
+- [x] 实现移动赋值运算符。
+- [x] 实现析构关闭句柄。
+- [x] 实现 `Valid()`。
+- [x] 实现 `NativeHandle()`。
+- [x] 实现 `Release()`，转移 native handle 所有权。
+- [x] 实现 `Reset()`，关闭旧句柄并接管新句柄。
+- [x] 保证移动后的对象处于无效但可析构状态。
+- [x] 调用 `close` 前移除对象中的旧 fd；Linux 上 `close` 返回 `EINTR` 时不重试，避免误关已复用的 fd。
+- [x] 保证析构中的 close 错误不会抛异常。
 - [ ] 提供显式 `close()` 以便调用者获得关闭错误。
 - [ ] 防止显式 close 后析构重复关闭。
-- [ ] 为 move 构造和 move 赋值编写测试。
-- [ ] 为 `release()` 编写所有权测试。
-- [ ] 为重复 close 安全性编写测试。
+- [x] 为移动构造和移动赋值编写测试。
+- [x] 为 `Release()` 编写所有权测试。
+- [x] 为重复 `Reset()` 安全性编写测试。
 
 ### 5.2 打开文件
 

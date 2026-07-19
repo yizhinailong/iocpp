@@ -1,6 +1,7 @@
 export module iocpp;
 
 export import iocpp.error;
+export import iocpp.file;
 
 import std;
 

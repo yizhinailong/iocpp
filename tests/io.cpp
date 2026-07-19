@@ -11,6 +11,12 @@ namespace {
         EXPECT_TRUE(result.has_value());
     }
 
+    TEST(IocppModuleTest, ReexportsFileModule) {
+        iocpp::File file;
+
+        EXPECT_FALSE(file.Valid());
+    }
+
     TEST(IoTest, SleepAdvancesTime) {
         iocpp::TestContext test_context;
         iocpp::Io io{ test_context };
