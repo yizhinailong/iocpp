@@ -6,8 +6,7 @@ description = "A C++ implementation inspired by Zig std.Io"
 license     = "MIT"
 
 [targets.iocpp]
-kind = "bin"
-main = "src/main.cpp"
+kind = "lib"
 
 [dev-dependencies]
 compat.gtest = "1.15.2"
