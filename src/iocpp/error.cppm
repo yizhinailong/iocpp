@@ -9,8 +9,6 @@ export namespace iocpp {
     };
 
     enum class ErrorCode {
-        InvalidArgument,
-        IoError,
         Unsupported
     };
 

@@ -23,15 +23,22 @@ namespace {
         iocpp::Result<int> result{ 42 };
 
         ASSERT_TRUE(result.has_value());
+        EXPECT_TRUE(result);
         EXPECT_EQ(result.value(), 42);
+        EXPECT_EQ(*result, 42);
     }
 
     TEST(ResultTest, HoldsError) {
         iocpp::Result<int> result = std::unexpected<iocpp::Error>{ make_error() };
 
         ASSERT_FALSE(result.has_value());
+        EXPECT_FALSE(result);
         EXPECT_EQ(result.error().code, iocpp::ErrorCode::Unsupported);
         EXPECT_EQ(result.error().operation, iocpp::Operation::Sleep);
+        EXPECT_THROW(
+            static_cast<void>(result.value()),
+            std::bad_expected_access<iocpp::Error>
+        );
     }
 
     TEST(ResultTest, SupportsVoid) {
@@ -46,6 +53,7 @@ namespace {
         iocpp::Result<std::unique_ptr<int>> result{ std::make_unique<int>(42) };
 
         ASSERT_TRUE(result.has_value());
+        ASSERT_NE(result->get(), nullptr);
         EXPECT_EQ(**result, 42);
 
         auto moved_value = std::move(result).value();

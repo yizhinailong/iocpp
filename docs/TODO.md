@@ -66,48 +66,29 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 4.1 错误模型
 
-- [ ] 在 `src/iocpp/error.cppm` 中定义错误模型。
-- [ ] 定义 `enum class errc`。
-- [ ] 添加 `invalid_argument`。
-- [ ] 添加 `bad_file_descriptor`。
-- [ ] 添加 `file_not_found`。
-- [ ] 添加 `permission_denied`。
-- [ ] 添加 `already_exists`。
-- [ ] 添加 `would_block`。
-- [ ] 添加 `interrupted`。
-- [ ] 添加 `io_error`。
-- [ ] 添加 `no_space_left`。
-- [ ] 添加 `file_too_large`。
-- [ ] 添加 `resource_unavailable`。
-- [ ] 添加 `concurrency_unavailable`。
-- [ ] 添加 `cancelled`。
-- [ ] 添加 `unknown`。
-- [ ] 定义 `enum class operation`，记录失败操作类型。
-- [ ] 为 `operation` 添加 `open_file`。
-- [ ] 为 `operation` 添加 `close_file`。
-- [ ] 为 `operation` 添加 `read_at`。
-- [ ] 为 `operation` 添加 `write_at`。
-- [ ] 为 `operation` 添加 `submit_task`。
-- [ ] 为 `operation` 添加 `sleep`。
-- [ ] 定义 `iocpp::error`，至少保存 `errc`、`operation` 和原始 `errno`。
-- [ ] 为 `iocpp::error` 提供 `message()`。
-- [ ] 为 `iocpp::error` 提供 `operator bool` 或等价检查接口。
-- [ ] 实现从 Linux `errno` 到 `errc` 的集中映射函数。
-- [ ] 保证未知 errno 不会被静默丢弃。
-- [ ] 为 errno 映射编写表驱动单元测试。
-- [ ] 明确 `iocpp::error` 只表示系统调用、参数、资源和任务提交错误，不承载 callable 抛出的 C++ 异常。
+- [x] 在 `src/iocpp/error.cppm` 中定义错误模型。
+- [x] 定义 `enum class ErrorCode`。
+- [x] 添加 `Unsupported`。
+- [x] 定义 `enum class Operation`，记录失败操作类型。
+- [x] 为 `Operation` 添加 `Sleep`。
+- [x] 定义 `iocpp::Error`，保存 `ErrorCode` 和 `Operation`。
+- [x] 使用 `Result<T>` 显式判断成功或失败，不为 `Error` 添加语义含糊的 `operator bool`。
+- [ ] 实现新功能时，只为实际出现的失败路径添加对应的 `ErrorCode` 和 `Operation`，不预先穷举。
+- [ ] 首次接入 Linux 系统调用时保存原始 `errno`，并为实际使用的 errno 添加集中映射和表驱动测试。
+- [ ] 在调用方需要错误文本时为 `iocpp::Error` 提供 `Message()`。
+- [x] 明确 `iocpp::Error` 只表示系统调用、参数、资源和任务提交错误，不承载 callable 抛出的 C++ 异常。
 
 ### 4.2 `Result<T>`（基于 `std::expected`）
 
-- [ ] 在 `src/iocpp/error.cppm` 中定义结果类型。
-- [ ] 定义 `template<typename T> using Result = std::expected<T, Error>`。
+- [x] 在 `src/iocpp/error.cppm` 中定义结果类型。
+- [x] 定义 `template<typename T> using Result = std::expected<T, Error>`。
 - [x] 验证 `Result<int>` 的成功值构造。
 - [x] 验证通过 `std::unexpected<Error>` 构造失败结果。
 - [x] 验证 `Result<void>` 的成功和失败结果。
 - [x] 验证 `Result<std::unique_ptr<int>>` 等 move-only 值类型。
-- [ ] 验证 `has_value()` 和显式 `operator bool()`。
-- [ ] 验证 `value()`、`error()`、`operator*` 和 `operator->`。
-- [ ] 验证错误访问抛出 `std::bad_expected_access<Error>`。
+- [x] 验证 `has_value()` 和显式 `operator bool()`。
+- [x] 验证 `value()`、`error()`、`operator*` 和 `operator->`。
+- [x] 验证错误访问抛出 `std::bad_expected_access<Error>`。
 
 ### 4.3 Buffer 类型约定
 
