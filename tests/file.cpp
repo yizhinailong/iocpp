@@ -5,15 +5,15 @@
 #include <unistd.h>
 
 import std;
-import iocpp.file;
+import iocpp;
 
 namespace {
 
-    static_assert(!std::is_copy_constructible_v<iocpp::File>);
-    static_assert(!std::is_copy_assignable_v<iocpp::File>);
-    static_assert(std::is_nothrow_move_constructible_v<iocpp::File>);
-    static_assert(std::is_nothrow_move_assignable_v<iocpp::File>);
-    static_assert(std::is_nothrow_destructible_v<iocpp::File>);
+    static_assert(!std::is_copy_constructible_v<iocpp::Io::File>);
+    static_assert(!std::is_copy_assignable_v<iocpp::Io::File>);
+    static_assert(std::is_nothrow_move_constructible_v<iocpp::Io::File>);
+    static_assert(std::is_nothrow_move_assignable_v<iocpp::Io::File>);
+    static_assert(std::is_nothrow_destructible_v<iocpp::Io::File>);
 
     auto open_null() -> int {
         return ::open("/dev/null", O_RDONLY | O_CLOEXEC);
@@ -29,56 +29,74 @@ namespace {
         EXPECT_EQ(errno, EBADF);
     }
 
-    TEST(FileTest, DefaultConstructsEmpty) {
-        iocpp::File file;
+    struct StubIoContext final : iocpp::IoContext {
+        auto Now() const -> iocpp::Io::Timestamp override {
+            return {};
+        }
+
+        auto Sleep(iocpp::Io::Duration) -> void override {}
+    };
+
+    class FileTest : public ::testing::Test {
+    protected:
+        auto adoptFile(int native_handle) -> iocpp::Io::File {
+            return m_io.AdoptFile(native_handle);
+        }
+
+        StubIoContext m_context;
+        iocpp::Io m_io{ m_context };
+    };
+
+    TEST_F(FileTest, DefaultConstructsEmpty) {
+        iocpp::Io::File file;
 
         EXPECT_FALSE(file.Valid());
-        EXPECT_EQ(file.NativeHandle(), iocpp::File::INVALID_HANDLE);
+        EXPECT_EQ(file.NativeHandle(), iocpp::Io::File::INVALID_HANDLE);
     }
 
-    TEST(FileTest, AdoptsNativeHandle) {
+    TEST_F(FileTest, AdoptsNativeHandle) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
 
-        iocpp::File file{ native_handle };
+        auto file = this->adoptFile(native_handle);
 
         EXPECT_TRUE(file.Valid());
         EXPECT_EQ(file.NativeHandle(), native_handle);
         expect_open(native_handle);
     }
 
-    TEST(FileTest, DestructorClosesNativeHandle) {
+    TEST_F(FileTest, DestructorClosesNativeHandle) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
 
         {
-            iocpp::File file{ native_handle };
+            auto file = this->adoptFile(native_handle);
         }
 
         expect_closed(native_handle);
     }
 
-    TEST(FileTest, MoveConstructionTransfersOwnership) {
+    TEST_F(FileTest, MoveConstructionTransfersOwnership) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
-        iocpp::File source{ native_handle };
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
+        auto source = this->adoptFile(native_handle);
 
-        iocpp::File destination{ std::move(source) };
+        iocpp::Io::File destination{ std::move(source) };
 
         EXPECT_FALSE(source.Valid());
-        EXPECT_EQ(source.NativeHandle(), iocpp::File::INVALID_HANDLE);
+        EXPECT_EQ(source.NativeHandle(), iocpp::Io::File::INVALID_HANDLE);
         EXPECT_TRUE(destination.Valid());
         EXPECT_EQ(destination.NativeHandle(), native_handle);
         expect_open(native_handle);
     }
 
-    TEST(FileTest, MoveAssignmentClosesPreviousHandle) {
+    TEST_F(FileTest, MoveAssignmentClosesPreviousHandle) {
         auto const source_handle = open_null();
-        ASSERT_NE(source_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(source_handle, iocpp::Io::File::INVALID_HANDLE);
         auto const destination_handle = open_null();
-        ASSERT_NE(destination_handle, iocpp::File::INVALID_HANDLE);
-        iocpp::File source{ source_handle };
-        iocpp::File destination{ destination_handle };
+        ASSERT_NE(destination_handle, iocpp::Io::File::INVALID_HANDLE);
+        auto source = this->adoptFile(source_handle);
+        auto destination = this->adoptFile(destination_handle);
 
         destination = std::move(source);
 
@@ -88,12 +106,12 @@ namespace {
         expect_open(source_handle);
     }
 
-    TEST(FileTest, ReleaseRelinquishesOwnership) {
+    TEST_F(FileTest, ReleaseRelinquishesOwnership) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
 
         {
-            iocpp::File file{ native_handle };
+            auto file = this->adoptFile(native_handle);
 
             EXPECT_EQ(file.Release(), native_handle);
             EXPECT_FALSE(file.Valid());
@@ -103,14 +121,14 @@ namespace {
         EXPECT_EQ(::close(native_handle), 0);
     }
 
-    TEST(FileTest, ResetClosesPreviousAndAdoptsReplacement) {
+    TEST_F(FileTest, ResetClosesPreviousAndAdoptsReplacement) {
         auto const previous_handle = open_null();
-        ASSERT_NE(previous_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(previous_handle, iocpp::Io::File::INVALID_HANDLE);
         auto const replacement_handle = open_null();
-        ASSERT_NE(replacement_handle, iocpp::File::INVALID_HANDLE);
+        ASSERT_NE(replacement_handle, iocpp::Io::File::INVALID_HANDLE);
 
         {
-            iocpp::File file{ previous_handle };
+            auto file = this->adoptFile(previous_handle);
 
             file.Reset(replacement_handle);
 
@@ -122,10 +140,10 @@ namespace {
         expect_closed(replacement_handle);
     }
 
-    TEST(FileTest, ResetWithOwnedHandleIsNoOp) {
+    TEST_F(FileTest, ResetWithOwnedHandleIsNoOp) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
-        iocpp::File file{ native_handle };
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
+        auto file = this->adoptFile(native_handle);
 
         file.Reset(native_handle);
 
@@ -133,16 +151,16 @@ namespace {
         expect_open(native_handle);
     }
 
-    TEST(FileTest, ResetCanBeRepeated) {
+    TEST_F(FileTest, ResetCanBeRepeated) {
         auto const native_handle = open_null();
-        ASSERT_NE(native_handle, iocpp::File::INVALID_HANDLE);
-        iocpp::File file{ native_handle };
+        ASSERT_NE(native_handle, iocpp::Io::File::INVALID_HANDLE);
+        auto file = this->adoptFile(native_handle);
 
         file.Reset();
         file.Reset();
 
         EXPECT_FALSE(file.Valid());
-        EXPECT_EQ(file.NativeHandle(), iocpp::File::INVALID_HANDLE);
+        EXPECT_EQ(file.NativeHandle(), iocpp::Io::File::INVALID_HANDLE);
         expect_closed(native_handle);
     }
 

@@ -1,26 +1,26 @@
 #include <gtest/gtest.h>
 
 import std;
-import iocpp.error;
+import iocpp;
 
 namespace {
 
-    auto make_error() -> iocpp::Error {
+    auto make_error() -> iocpp::Io::Error {
         return {
-            .code = iocpp::ErrorCode::Unsupported,
-            .operation = iocpp::Operation::Sleep,
+            .code = iocpp::Io::ErrorCode::Unsupported,
+            .operation = iocpp::Io::Operation::Sleep,
         };
     }
 
     TEST(ErrorTest, StoresContext) {
         auto const error = make_error();
 
-        EXPECT_EQ(error.code, iocpp::ErrorCode::Unsupported);
-        EXPECT_EQ(error.operation, iocpp::Operation::Sleep);
+        EXPECT_EQ(error.code, iocpp::Io::ErrorCode::Unsupported);
+        EXPECT_EQ(error.operation, iocpp::Io::Operation::Sleep);
     }
 
     TEST(ResultTest, HoldsValue) {
-        iocpp::Result<int> result{ 42 };
+        iocpp::Io::Result<int> result{ 42 };
 
         ASSERT_TRUE(result.has_value());
         EXPECT_TRUE(result);
@@ -29,28 +29,28 @@ namespace {
     }
 
     TEST(ResultTest, HoldsError) {
-        iocpp::Result<int> result = std::unexpected<iocpp::Error>{ make_error() };
+        iocpp::Io::Result<int> result = std::unexpected<iocpp::Io::Error>{ make_error() };
 
         ASSERT_FALSE(result.has_value());
         EXPECT_FALSE(result);
-        EXPECT_EQ(result.error().code, iocpp::ErrorCode::Unsupported);
-        EXPECT_EQ(result.error().operation, iocpp::Operation::Sleep);
+        EXPECT_EQ(result.error().code, iocpp::Io::ErrorCode::Unsupported);
+        EXPECT_EQ(result.error().operation, iocpp::Io::Operation::Sleep);
         EXPECT_THROW(
             static_cast<void>(result.value()),
-            std::bad_expected_access<iocpp::Error>
+            std::bad_expected_access<iocpp::Io::Error>
         );
     }
 
     TEST(ResultTest, SupportsVoid) {
-        iocpp::Result<void> success{};
-        iocpp::Result<void> failure = std::unexpected<iocpp::Error>{ make_error() };
+        iocpp::Io::Result<void> success{};
+        iocpp::Io::Result<void> failure = std::unexpected<iocpp::Io::Error>{ make_error() };
 
         EXPECT_TRUE(success.has_value());
         EXPECT_FALSE(failure.has_value());
     }
 
     TEST(ResultTest, SupportsMoveOnlyValue) {
-        iocpp::Result<std::unique_ptr<int>> result{ std::make_unique<int>(42) };
+        iocpp::Io::Result<std::unique_ptr<int>> result{ std::make_unique<int>(42) };
 
         ASSERT_TRUE(result.has_value());
         ASSERT_NE(result->get(), nullptr);

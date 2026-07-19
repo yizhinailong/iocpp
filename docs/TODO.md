@@ -11,12 +11,12 @@
 第一个版本只支持 Linux，使用阻塞系统调用和固定大小线程池，实现以下纵向功能链：
 
 ```text
-io_context
-  -> threaded_backend
-      -> open/close/pread/pwrite
-      -> async/concurrent
-      -> task wait/cancel
-      -> cancelable sleep
+Io
+  -> Io::Threaded
+      -> OpenFile/Close/ReadAt/WriteAt
+      -> Async/Concurrent
+      -> Io::Task<T> Wait/Cancel
+      -> cancelable Sleep
 ```
 
 最小可用版本完成标准：
@@ -24,10 +24,10 @@ io_context
 - 能在 Linux x86_64 上使用 GCC 和 Clang 构建。
 - 能创建、写入、读取和关闭普通文件。
 - 能在线程池中执行有返回值或无返回值的任务。
-- `async` 在并发资源不足时能够同步回退。
-- `concurrent` 在并发资源不足时返回明确错误。
+- `Io::Async()` 在并发资源不足时能够同步回退。
+- `Io::Concurrent()` 在并发资源不足时返回明确错误。
 - 能取消尚未开始的任务。
-- 能取消正在等待的 `sleep_for`。
+- 能取消正在等待的 `Io::Sleep()`。
 - 基础测试在普通 Debug 构建、AddressSanitizer 和 UndefinedBehaviorSanitizer 下通过。
 - 提供可复制运行的 mcpp 构建命令和完整文件异步示例。
 - 不要求支持网络、io_uring、epoll、目录遍历、进程或跨平台。
@@ -36,21 +36,22 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ## 2. 已确定的基础设计
 
-- [ ] 使用命名空间 `iocpp`，不向 `namespace std` 添加声明。
+- [x] 使用命名空间 `iocpp`，不向 `namespace std` 添加声明。
+- [x] 公共业务类型统一放在 `iocpp::Io` 下，需要后端能力的操作统一由 `Io` 实例转发；顶层 `IoContext` 仅作为后端扩展接口。
 - [ ] 第一版不依赖 Boost、Asio、liburing 或第三方线程池。
 - [ ] 第一版使用固定数量的工作线程。
-- [ ] 以 Zig `std.Io` 的 `async`、`concurrent` 和 Future 行为作为语义参考；与本文档冲突时以本文档的固定线程池和 C++ API 决策为准。
+- [ ] 以 Zig `std.Io` 的 `async`、`concurrent` 和 Future 行为作为语义参考；C++ 入口对应为 `Io::Async()`、`Io::Concurrent()` 和 `Io::Task<T>`，与本文档冲突时以本文档的固定线程池和 C++ API 决策为准。
 - [ ] 普通文件读写优先使用 `pread`/`pwrite`，避免共享文件 offset。
 - [ ] 文件对象使用 move-only RAII 所有权模型。
-- [ ] `io_context` 是不拥有 backend 的轻量句柄。
-- [ ] backend 必须比引用它的 `io_context` 和尚未结束的 `task` 活得更久；`file` 只拥有 native handle，不依赖 backend 生命周期。
-- [ ] `task<T>::wait()` 返回能够表示成功、取消和 callable 异常的结果。
-- [ ] `task<T>` 是单消费者对象，`wait()` 与 `cancel()` 不允许被多个线程并发调用。
+- [x] `Io` 是不拥有 `IoContext` 实现的轻量句柄。
+- [ ] `IoContext` 实现必须比引用它的 `Io` 和尚未结束的 `Io::Task<T>` 活得更久；`Io::File` 只拥有 native handle，不依赖后端生命周期。
+- [ ] `Io::Task<T>::Wait()` 返回能够表示成功、取消和 callable 异常的结果。
+- [ ] `Io::Task<T>` 是单消费者对象，`Wait()` 与 `Cancel()` 不允许被多个线程并发调用。
 - [ ] callable 异常以 `std::exception_ptr` 原样保存在 task 结果中。
-- [ ] `task<T>` 析构时若任务尚未结束，则请求取消并等待结束。
+- [ ] `Io::Task<T>` 析构时若任务尚未结束，则请求取消并等待结束。
 - [ ] 运行中的普通 `pread`/`pwrite` 第一版不保证可中断。
 - [ ] 取消采用协作式语义，不使用 `pthread_cancel` 或强制终止线程。
-- [ ] `cancellation_source`、`cancellation_token` 和取消回调封装标准库 `std::stop_source`、`std::stop_token` 与 `std::stop_callback`。
+- [ ] `Io::CancellationSource`、`Io::CancellationToken` 和取消回调封装标准库 `std::stop_source`、`std::stop_token` 与 `std::stop_callback`。
 
 ## 3. 项目骨架
 
@@ -66,15 +67,15 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 4.1 错误模型
 
-- [ ] 实现新功能时，只为实际出现的失败路径添加对应的 `ErrorCode` 和 `Operation`，不预先穷举。
+- [ ] 实现新功能时，只为实际出现的失败路径添加对应的 `Io::ErrorCode` 和 `Io::Operation`，不预先穷举。
 - [ ] 首次接入 Linux 系统调用时保存原始 `errno`，并为实际使用的 errno 添加集中映射和表驱动测试。
-- [ ] 在调用方需要错误文本时为 `iocpp::Error` 提供 `Message()`。
+- [ ] 在调用方需要错误文本时为 `Io::Error` 提供 `Message()`。
 
 ### 4.2 Buffer 类型约定
 
-- [ ] 在 `src/iocpp.cppm` 中定义 buffer 类型。
-- [ ] 定义可写 buffer 为 `std::span<std::byte>`。
-- [ ] 定义只读 buffer 为 `std::span<const std::byte>`。
+- [ ] 在 `src/iocpp.cppm` 中定义 `Io::WritableBuffer` 和 `Io::ReadOnlyBuffer`。
+- [ ] 定义 `Io::WritableBuffer` 为 `std::span<std::byte>`。
+- [ ] 定义 `Io::ReadOnlyBuffer` 为 `std::span<const std::byte>`。
 - [ ] 提供从 `std::span<char>` 转换到字节 span 的辅助函数。
 - [ ] 提供从 `std::string_view` 转换到只读字节 span 的辅助函数。
 - [ ] 明确所有同步文件操作只在调用期间借用 buffer。
@@ -83,11 +84,12 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ## 5. Linux 文件句柄
 
-### 5.1 file 类型
+### 5.1 Io::File 类型
 
-- [x] 在 `src/iocpp/file.cppm` 中定义 `File` 类型，并由 `iocpp` 模块重新导出。
+- [x] 在内部模块 `src/iocpp/file.cppm` 中定义文件句柄，并仅通过 `Io::File` 暴露。
+- [x] 实现 `Io::AdoptFile()`，集中接管已有 native handle。
 - [x] 定义无效 native handle 为 `-1`。
-- [x] 实现默认构造的空 `File`。
+- [x] 实现默认构造的空 `Io::File`。
 - [x] 删除拷贝构造函数。
 - [x] 删除拷贝赋值运算符。
 - [x] 实现移动构造函数。
@@ -100,7 +102,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [x] 保证移动后的对象处于无效但可析构状态。
 - [x] 调用 `close` 前移除对象中的旧 fd；Linux 上 `close` 返回 `EINTR` 时不重试，避免误关已复用的 fd。
 - [x] 保证析构中的 close 错误不会抛异常。
-- [ ] 提供显式 `close()` 以便调用者获得关闭错误。
+- [ ] 提供 `Io::Close(File&)`，以便调用者获得关闭错误。
 - [ ] 防止显式 close 后析构重复关闭。
 - [x] 为移动构造和移动赋值编写测试。
 - [x] 为 `Release()` 编写所有权测试。
@@ -108,15 +110,15 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 5.2 打开文件
 
-- [ ] 定义路径参数为 `std::string_view`，同步调用期间借用路径内容。
-- [ ] 定义 `open_mode::read_only`。
-- [ ] 定义 `open_mode::write_only`。
-- [ ] 定义 `open_mode::read_write`。
-- [ ] 定义 `open_options::create`。
-- [ ] 定义 `open_options::truncate`。
-- [ ] 定义 `open_options::exclusive`。
+- [ ] 定义 `Io::OpenFile()` 的路径参数为 `std::string_view`，同步调用期间借用路径内容。
+- [ ] 定义 `Io::OpenMode::ReadOnly`。
+- [ ] 定义 `Io::OpenMode::WriteOnly`。
+- [ ] 定义 `Io::OpenMode::ReadWrite`。
+- [ ] 定义 `Io::OpenOptions::Create`。
+- [ ] 定义 `Io::OpenOptions::Truncate`。
+- [ ] 定义 `Io::OpenOptions::Exclusive`。
 - [ ] 定义创建权限默认值 `0644`。
-- [ ] 将 `open_options` 映射为 Linux `O_*` 标志。
+- [ ] 将 `Io::OpenOptions` 映射为 Linux `O_*` 标志。
 - [ ] 默认添加 `O_CLOEXEC`。
 - [ ] 使用 `openat(AT_FDCWD, ...)` 实现打开文件。
 - [ ] 拒绝互相冲突的选项组合。
@@ -131,8 +133,8 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 5.3 位置读写
 
-- [ ] 定义 `read_at(file&, writable_buffer, uint64_t offset)`。
-- [ ] 定义 `write_at(file&, readonly_buffer, uint64_t offset)`。
+- [ ] 定义 `Io::ReadAt(File&, WritableBuffer, uint64_t offset)`。
+- [ ] 定义 `Io::WriteAt(File&, ReadOnlyBuffer, uint64_t offset)`。
 - [ ] 检查无效文件句柄。
 - [ ] 检查 offset 是否能安全转换为 `off_t`。
 - [ ] 使用 `pread` 实现单 buffer 位置读取。
@@ -143,9 +145,9 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 将 EOF 表示为成功读取 0 字节。
 - [ ] 不把 0 字节读取当作错误。
 - [ ] 处理零长度 buffer，不执行 syscall。
-- [ ] 实现 `read_at_all` 辅助函数。
-- [ ] 实现 `write_at_all` 辅助函数。
-- [ ] 防止 `write_at_all` 在连续零进度时无限循环。
+- [ ] 实现 `Io::ReadAtAll()` 辅助函数。
+- [ ] 实现 `Io::WriteAtAll()` 辅助函数。
+- [ ] 防止 `Io::WriteAtAll()` 在连续零进度时无限循环。
 - [ ] 测试基础位置写入和读取。
 - [ ] 测试非零 offset。
 - [ ] 测试越过 EOF 读取。
@@ -155,59 +157,60 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 测试大于一页的数据。
 - [ ] 测试文件描述符关闭后的错误映射。
 
-## 6. backend 与 io_context
+## 6. Io 与后端分发
 
-### 6.1 backend 接口
+### 6.1 IoContext 接口
 
-- [ ] 在 `src/iocpp.cppm` 中定义 io_backend 接口。
-- [ ] 定义 `io_backend` 抽象基类。
-- [ ] 为 `io_backend` 添加虚析构函数。
-- [ ] 添加 `open_file` 虚函数。
-- [ ] 添加 `read_at` 虚函数。
-- [ ] 添加 `write_at` 虚函数。
+- [x] 在 `src/iocpp.cppm` 中定义 `IoContext` 抽象基类。
+- [x] 为 `IoContext` 添加虚析构函数。
+- [ ] 添加 `OpenFile` 虚函数。
+- [ ] 添加 `Close` 虚函数。
+- [ ] 添加 `ReadAt` 虚函数。
+- [ ] 添加 `WriteAt` 虚函数。
 - [ ] 添加任务提交的内部虚函数。
 - [ ] 添加查询并发容量的内部接口。
 - [ ] 添加可取消 sleep 的内部虚函数。
-- [ ] 添加 backend shutdown 接口。
+- [ ] 添加后端 shutdown 接口。
 - [ ] 明确所有虚函数的线程安全要求。
-- [ ] 明确 backend shutdown 后各函数的行为。
-- [ ] 禁止复制 backend。
-- [ ] 允许 backend 在固定地址上构造和使用。
+- [ ] 明确后端 shutdown 后各函数的行为。
+- [ ] 禁止复制 `IoContext` 实现。
+- [ ] 允许 `IoContext` 实现在固定地址上构造和使用。
 
-### 6.2 io_context
+### 6.2 Io 统一入口
 
-- [ ] 在 `src/iocpp.cppm` 中定义 io_context 接口。
-- [ ] 实现从 `io_backend&` 构造 `io_context`。
-- [ ] 允许复制和移动 `io_context`。
-- [ ] 添加 `backend()` 内部访问器。
-- [ ] 添加 `open_file` 转发函数。
-- [ ] 添加 `read_at` 转发函数。
-- [ ] 添加 `write_at` 转发函数。
-- [ ] 添加 `read_at_all` 高层循环。
-- [ ] 添加 `write_at_all` 高层循环。
-- [ ] 保证 `io_context` 不负责 backend 生命周期。
+- [x] 在 `src/iocpp.cppm` 中定义 `Io` 接口。
+- [x] 实现从 `IoContext&` 构造 `Io`。
+- [x] 允许复制和移动 `Io`。
+- [ ] 添加 `context()` 内部访问器。
+- [ ] 添加 `OpenFile()` 转发函数。
+- [ ] 添加 `Close()` 转发函数。
+- [ ] 添加 `ReadAt()` 转发函数。
+- [ ] 添加 `WriteAt()` 转发函数。
+- [ ] 添加 `ReadAtAll()` 高层循环。
+- [ ] 添加 `WriteAtAll()` 高层循环。
+- [x] 保证 `Io` 不负责 `IoContext` 实现的生命周期。
 - [ ] 在文档中给出正确和错误的生命周期示例。
-- [ ] 编写 fake backend，验证调用确实经过 backend 分发。
-- [ ] 测试复制后的 `io_context` 指向同一 backend。
+- [x] 在测试代码中定义虚拟时间 `TestIoContext`，验证时间调用确实经过后端分发，不向生产模块导出测试工具。
+- [x] 测试复制后的 `Io` 指向同一后端。
 
 ## 7. 取消基础设施
 
-### 7.1 cancellation_source/token
+### 7.1 Io::CancellationSource/Io::CancellationToken
 
 - [ ] 在 `src/iocpp.cppm` 中定义 cancellation 类型。
-- [ ] 定义 `cancellation_source`。
-- [ ] 定义轻量、可复制的 `cancellation_token`。
+- [ ] 定义 `Io::CancellationSource`。
+- [ ] 定义轻量、可复制的 `Io::CancellationToken`。
 - [ ] 使用 `std::stop_source` 和 `std::stop_token` 保存和共享取消状态。
-- [ ] 实现 `request_cancel()`。
-- [ ] 保证 `request_cancel()` 幂等。
-- [ ] 实现 `stop_requested()`。
-- [ ] 实现纯取消点 `check_cancelled()`。
+- [ ] 实现 `RequestCancel()`。
+- [ ] 保证 `RequestCancel()` 幂等。
+- [ ] 实现 `StopRequested()`。
+- [ ] 实现纯取消点 `CheckCancelled()`。
 - [ ] 规定空 token 永不取消。
 - [ ] 规定 source 析构不会自动请求取消。
 - [ ] 提供基于 `std::stop_callback` 的取消回调包装，不自行维护回调链表。
 - [ ] 记录取消回调可能在注册线程或请求取消的线程中同步执行。
 - [ ] 测试取消前后的 token 状态。
-- [ ] 测试多次 request_cancel。
+- [ ] 测试多次 `RequestCancel()`。
 - [ ] 测试多个 token 观察同一 source。
 - [ ] 测试取消前后注册回调的行为。
 
@@ -225,7 +228,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 8.1 类型设计
 
-- [ ] 在 `src/iocpp.cppm` 中定义 task 类型。
+- [ ] 在 `src/iocpp.cppm` 中定义 `Io::Task<T>` 类型。
 - [ ] 创建内部 `task_state_base`。
 - [ ] 创建模板 `task_state<T>`。
 - [ ] 创建 `task_state<void>` 特化。
@@ -238,27 +241,27 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 在 task state 中保存 cancellation source。
 - [ ] 在 task state 中保存成功结果。
 - [ ] 在 task state 中保存 `std::exception_ptr`。
-- [ ] 定义 `task_error`，区分取消、callable 异常和无效 task。
-- [ ] 定义 `task_result<T>`。
-- [ ] 定义 `task_result<void>`。
-- [ ] 明确 `task_result<T>` 与普通 `Result<T>` 分离：前者保存 task 终态，后者保存操作和提交错误。
+- [ ] 定义 `Io::TaskError`，区分取消、callable 异常和无效 task。
+- [ ] 定义 `Io::TaskResult<T>`。
+- [ ] 定义 `Io::TaskResult<void>`。
+- [ ] 明确 `Io::TaskResult<T>` 与普通 `Io::Result<T>` 分离：前者保存 task 终态，后者保存操作和提交错误。
 
-### 8.2 task<T> API
+### 8.2 Io::Task<T> API
 
-- [ ] 实现 move-only、单消费者 `task<T>`。
+- [ ] 实现 move-only、单消费者 `Io::Task<T>`。
 - [ ] 删除 task 拷贝构造和拷贝赋值。
 - [ ] 实现 move 构造。
 - [ ] 实现 move 赋值。
-- [ ] 实现 `valid()`。
-- [ ] 实现 `ready()`。
-- [ ] 实现阻塞 `wait()`，成功返回后取出结果并使 task 失效。
-- [ ] 实现 `wait_for()`，超时时不消费结果。
-- [ ] 实现 `cancel()`。
-- [ ] 让 `cancel()` 幂等地请求取消并等待任务结束，但不消费结果，之后仍允许调用一次 `wait()`。
-- [ ] 实现 `token()`，允许查看同一取消状态。
-- [ ] 禁止多次 `wait()`；第二次调用或在已消费 task 上调用返回无效 task 错误。
-- [ ] 允许多次 `cancel()`，每次都等待任务进入终态。
-- [ ] 规定 `wait()`、`wait_for()` 和 `cancel()` 不支持多个线程并发调用同一 task。
+- [ ] 实现 `Valid()`。
+- [ ] 实现 `Ready()`。
+- [ ] 实现阻塞 `Wait()`，成功返回后取出结果并使 task 失效。
+- [ ] 实现 `WaitFor()`，超时时不消费结果。
+- [ ] 实现 `Cancel()`。
+- [ ] 让 `Cancel()` 幂等地请求取消并等待任务结束，但不消费结果，之后仍允许调用一次 `Wait()`。
+- [ ] 实现 `Token()`，允许查看同一取消状态。
+- [ ] 禁止多次 `Wait()`；第二次调用或在已消费 task 上调用返回无效 task 错误。
+- [ ] 允许多次 `Cancel()`，每次都等待任务进入终态。
+- [ ] 规定 `Wait()`、`WaitFor()` 和 `Cancel()` 不支持多个线程并发调用同一 `Io::Task<T>`。
 - [ ] 处理空 task 上调用成员函数的行为。
 - [ ] 实现析构时取消并等待。
 - [ ] 防止 task 在自己的 callable 内析构导致自等待死锁。
@@ -274,7 +277,7 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 确保等待线程看到完整结果。
 - [ ] 捕获 callable 抛出的所有异常。
 - [ ] 保证 worker 不会因用户异常退出。
-- [ ] 确保完成时唤醒正在执行 `wait()` 或 `wait_for()` 的单个消费者。
+- [ ] 确保完成时唤醒正在执行 `Wait()` 或 `WaitFor()` 的单个消费者。
 - [ ] 防止任务完成两次。
 - [ ] 防止 packaged callable 执行两次。
 - [ ] 测试返回 `int` 的任务。
@@ -284,19 +287,19 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 测试执行前取消。
 - [ ] 测试执行中请求取消但 callable 忽略请求。
 - [ ] 测试完成与取消同时发生。
-- [ ] 测试 `cancel()` 后仍可调用一次 `wait()` 取得终态。
-- [ ] 测试多次 `cancel()`。
-- [ ] 测试第二次 `wait()` 返回无效 task 错误。
+- [ ] 测试 `Cancel()` 后仍可调用一次 `Wait()` 取得终态。
+- [ ] 测试多次 `Cancel()`。
+- [ ] 测试第二次 `Wait()` 返回无效 task 错误。
 - [ ] 测试 task 移动后等待。
 - [ ] 测试未显式 wait 的 task 析构。
 
-## 9. 固定线程池 threaded_backend
+## 9. 固定线程池 Io::Threaded
 
 ### 9.1 生命周期
 
-- [ ] 在 `src/iocpp.cppm` 中定义 threaded_backend。
-- [ ] 创建 `src/threaded_backend.cpp`。
-- [ ] 定义 `threaded_backend_options`。
+- [ ] 将现有 `Io::Threaded` 扩展为固定线程池后端。
+- [ ] 创建 `src/threaded.cpp`。
+- [ ] 定义 `Io::ThreadedOptions`。
 - [ ] 添加 `worker_count`。
 - [ ] 添加 `async_limit`。
 - [ ] 添加 `concurrent_limit`。
@@ -304,16 +307,16 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 默认 worker 数使用 `std::thread::hardware_concurrency()`。
 - [ ] `hardware_concurrency()` 返回 0 时默认使用 1 个 worker。
 - [ ] `async_limit` 和 `concurrent_limit` 默认等于 `worker_count`，并允许调用者显式设置更大的排队容量。
-- [ ] backend 构造时创建 worker。
+- [ ] `Io::Threaded` 构造时创建 worker。
 - [ ] 部分 worker 创建失败时停止并 join 已创建线程，然后抛出 `std::system_error`。
-- [ ] backend 析构时开始 shutdown。
-- [ ] shutdown 后停止接收线程池任务；`async` 改为 eager 执行，`concurrent` 返回错误。
+- [ ] `Io::Threaded` 析构时开始 shutdown。
+- [ ] shutdown 后停止接收线程池任务；`Io::Async()` 改为 eager 执行，`Io::Concurrent()` 返回错误。
 - [ ] shutdown 时唤醒所有 worker。
 - [ ] shutdown 时取消尚未开始的任务。
 - [ ] shutdown 时等待正在运行的任务。
 - [ ] join 所有 worker。
-- [ ] 保证显式 shutdown 幂等。
-- [ ] 防止 worker 线程调用 shutdown 后 join 自己。
+- [ ] 保证显式 `Shutdown()` 幂等。
+- [ ] 防止 worker 线程调用 `Shutdown()` 后 join 自己。
 
 ### 9.2 任务队列
 
@@ -333,22 +336,22 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 防止计数上溢和下溢。
 - [ ] 测试 FIFO 行为。
 - [ ] 测试多个 producer 并发提交。
-- [ ] 测试 backend 空闲时不消耗一个 CPU 核。
+- [ ] 测试 `Io::Threaded` 空闲时不消耗一个 CPU 核。
 
 ### 9.3 async 提交规则
 
-- [ ] 在 `io_context` 添加 `async` 模板函数。
+- [ ] 在 `Io` 添加 `Async()` 模板函数。
 - [ ] 支持无参数 lambda。
 - [ ] 支持捕获 move-only 值的 lambda。
 - [ ] 支持返回值 callable。
 - [ ] 支持返回 void callable。
-- [ ] 检测 callable 是否可接收 `cancellation_token`。
+- [ ] 检测 callable 是否可接收 `Io::CancellationToken`。
 - [ ] 若 callable 同时支持有 token 和无参数调用，优先传入任务 token。
 - [ ] 若可接收 token，则执行时传入任务 token。
 - [ ] 若不可接收 token，则以无参数形式调用。
 - [ ] 在共享 outstanding 数量低于 `async_limit` 时提交线程池。
 - [ ] 在线程池已 shutdown 时同步 eager 执行 callable。
-- [ ] 分配 task state 失败时允许 `std::bad_alloc` 从 `async` 传播，因为此时无法构造有效 task。
+- [ ] 分配 task state 失败时允许 `std::bad_alloc` 从 `Io::Async()` 传播，因为此时无法构造有效 task。
 - [ ] 达到 `async_limit` 时在调用线程 eager 执行。
 - [ ] eager 执行也必须返回有效且已完成的 task。
 - [ ] eager 执行不增加 queued、running 或 outstanding 计数。
@@ -361,13 +364,13 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ### 9.4 concurrent 提交规则
 
-- [ ] 在 `io_context` 添加 `concurrent` 模板函数。
-- [ ] 返回 `result<task<T>>`。
+- [ ] 在 `Io` 添加 `Concurrent()` 模板函数。
+- [ ] 返回 `Io::Result<Io::Task<T>>`。
 - [ ] 共享 outstanding 数量低于 `concurrent_limit` 时提交。
-- [ ] 达到 `concurrent_limit` 时返回 `concurrency_unavailable`。
+- [ ] 达到 `concurrent_limit` 时返回明确错误；实现该路径时再添加对应的 `Io::ErrorCode`。
 - [ ] concurrent 不允许同步 eager 执行。
-- [ ] backend shutdown 后 concurrent 返回 `concurrency_unavailable`。
-- [ ] 分配 task state 或 work item 失败时返回 `resource_unavailable`。
+- [ ] `Io::Threaded` shutdown 后 `Concurrent()` 返回明确错误。
+- [ ] 分配 task state 或 work item 失败时返回明确错误。
 - [ ] 提交成功后保证任务最终由 worker 执行或在 shutdown 时取消。
 - [ ] 测试 concurrent 成功。
 - [ ] 测试 concurrent 容量耗尽。
@@ -378,10 +381,10 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ## 10. 可取消 sleep
 
-- [ ] 在 `src/iocpp.cppm` 中定义时间相关类型。
+- [x] 在 `src/iocpp.cppm` 中定义 `Io::Clock`、`Io::Duration` 和 `Io::Timestamp`。
 - [ ] 创建 `src/time_linux.cpp`。
-- [ ] 定义 `sleep_for(io_context, duration, cancellation_token)`。
-- [ ] 定义 `sleep_until(io_context, steady_clock::time_point, cancellation_token)`。
+- [ ] 将 `Io::Sleep(Duration)` 扩展为接受 `Io::CancellationToken` 的可取消操作。
+- [ ] 将 `Io::SleepUntil(Timestamp)` 扩展为接受 `Io::CancellationToken` 的可取消操作。
 - [ ] 使用单调时钟语义。
 - [ ] 正确处理零时长。
 - [ ] 正确处理负时长。
@@ -399,13 +402,13 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ## 11. 第一条完整调用链
 
-- [ ] 编写示例 `examples/file_async.cpp`。
-- [ ] 创建 `threaded_backend`。
-- [ ] 从 backend 创建 `io_context`。
+- [ ] 编写示例 `example/file_async.cpp`。
+- [ ] 创建 `Io::Threaded`。
+- [ ] 使用 `Io::Threaded` 创建 `Io`。
 - [ ] 创建临时文件。
-- [ ] 使用 `write_at_all` 写入已知字符串。
-- [ ] 使用 `concurrent` 启动位置读取任务。
-- [ ] 在任务中调用 `read_at_all`。
+- [ ] 使用 `Io::WriteAtAll()` 写入已知字符串。
+- [ ] 使用 `Io::Concurrent()` 启动位置读取任务。
+- [ ] 在任务中调用 `Io::ReadAtAll()`。
 - [ ] 等待 task 完成。
 - [ ] 校验读取内容。
 - [ ] 显式关闭文件并检查结果。
@@ -419,19 +422,19 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 测试两个文件任务并发读取。
 - [ ] 测试一个任务写入后另一个任务读取。
 - [ ] 测试 1000 个短任务。
-- [ ] 测试多线程同时调用 `async`。
-- [ ] 测试多线程同时调用 `concurrent`。
+- [ ] 测试多线程同时调用 `Io::Async()`。
+- [ ] 测试多线程同时调用 `Io::Concurrent()`。
 - [ ] 测试容量限制严格生效。
-- [ ] 测试 backend 析构时存在 queued task。
-- [ ] 测试 backend 析构时存在 running task。
-- [ ] 测试 task 比 io_context 更早析构。
+- [ ] 测试 `Io::Threaded` 析构时存在 queued task。
+- [ ] 测试 `Io::Threaded` 析构时存在 running task。
+- [ ] 测试 `Io::Task<T>` 比 `Io` 更早析构。
 - [ ] 运行 ASan 测试套件。
 - [ ] 运行 UBSan 测试套件。
 - [ ] 修复最小可用版本范围内的所有 ASan 和 UBSan 报告。
 
 ### 12.1 发布前并发与内存强化
 
-- [ ] 使用 Debug 断言测试可检测的 backend 生命周期误用。
+- [ ] 使用 Debug 断言测试可检测的 `IoContext` 生命周期误用。
 - [ ] 运行 TSan 测试套件。
 - [ ] 修复所有 TSan 报告。
 - [ ] 使用 `valgrind --leak-check=full` 做一次补充检查。
@@ -444,12 +447,12 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 - [ ] 写明当前仅支持 Linux。
 - [ ] 写明当前使用阻塞 syscall 和线程池。
 - [ ] 写明当前不支持 io_uring。
-- [ ] 写明 backend 生命周期规则。
+- [ ] 写明 `IoContext` 实现的生命周期规则。
 - [ ] 写明 buffer 生命周期规则。
 - [ ] 写明 task 析构可能阻塞。
 - [ ] 写明取消是协作式的。
 - [ ] 写明普通文件 syscall 不保证中断。
-- [ ] 记录 `async` 与 `concurrent` 的区别。
+- [ ] 记录 `Io::Async()` 与 `Io::Concurrent()` 的区别。
 - [ ] 添加构建命令。
 - [ ] 添加运行测试命令。
 - [ ] 添加 sanitizer 构建命令。
@@ -486,25 +489,25 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 
 ## 15. 明确推迟到 MVP 之后
 
-- [ ] `open_options::append`；在定义它与位置写入 `pwrite` 的交互规则后再加入。
-- [ ] 支持多个线程并发等待同一个 `task<T>` 的共享任务类型。
-- [ ] `reader`/`writer` 缓冲接口。
+- [ ] `Io::OpenOptions::Append`；在定义它与位置写入 `pwrite` 的交互规则后再加入。
+- [ ] 支持多个线程并发等待同一个 `Io::Task<T>` 的共享任务类型。
+- [ ] `Io::Reader`/`Io::Writer` 缓冲接口。
 - [ ] scatter/gather `preadv`/`pwritev`。
 - [ ] 流式 `read`/`write`。
 - [ ] TCP 和 Unix domain socket。
 - [ ] DNS 解析。
-- [ ] `task_group`。
-- [ ] `select`。
-- [ ] `io_batch`。
+- [ ] `Io::TaskGroup`。
+- [ ] `Io::Select()`。
+- [ ] `Io::Batch`。
 - [ ] semaphore、event、condition 等高层同步原语。
 - [ ] mmap。
 - [ ] 目录遍历和文件系统修改操作。
 - [ ] 子进程管理。
 - [ ] 安全随机数接口。
-- [ ] io_uring backend。
-- [ ] epoll backend。
-- [ ] kqueue backend。
-- [ ] Windows IOCP backend。
+- [ ] io_uring `IoContext` 实现。
+- [ ] epoll `IoContext` 实现。
+- [ ] kqueue `IoContext` 实现。
+- [ ] Windows IOCP `IoContext` 实现。
 - [ ] 无异常构建模式。
 - [ ] 自定义 allocator 或 `std::pmr` 支持。
 - [ ] coroutine `co_await` 支持。
@@ -518,17 +521,17 @@ ThreadSanitizer、Valgrind、完整 CI 矩阵、发布打包和 mcpp package con
 按以下顺序推进，每完成一项都保持 mcpp 配置、构建和已有测试可运行：
 
 1. 项目骨架和编译选项。
-2. `Error` 与基于 `std::expected` 的 `Result<T>`。
-3. move-only `file`。
-4. 同步 `open_file`、`read_at`、`write_at`。
+2. `Io::Error` 与基于 `std::expected` 的 `Io::Result<T>`。
+3. `Io`、`IoContext` 与 move-only `Io::File`。
+4. 同步 `Io::OpenFile()`、`Io::Close()`、`Io::ReadAt()`、`Io::WriteAt()`。
    完成此步后形成第一个同步文件 I/O 可用里程碑。
-5. `io_backend` 与 `io_context` 转发。
-6. 基于标准库 stop token 的 cancellation source/token。
-7. 单消费者 `task<T>` 状态机，不接线程池，先用测试直接驱动。
+5. 为 `IoContext` 与 `Io` 补齐文件操作分发。
+6. 基于标准库 stop token 的 `Io::CancellationSource`/`Io::CancellationToken`。
+7. 单消费者 `Io::Task<T>` 状态机，不接线程池，先用测试直接驱动。
 8. 固定线程池和 FIFO 任务队列。
-9. `async` eager 回退。
-10. `concurrent` 容量保证。
-11. 可取消 `sleep_for`。
+9. `Io::Async()` eager 回退。
+10. `Io::Concurrent()` 容量保证。
+11. 可取消 `Io::Sleep()`。
 12. 文件异步完整示例、README 使用说明、ASan 和 UBSan。
     完成此步后形成完整的最小可用版本。
 13. TSan、Valgrind、并发压力测试和 CI。

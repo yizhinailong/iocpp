@@ -2,7 +2,7 @@ export module iocpp.error;
 
 import std;
 
-export namespace iocpp {
+export namespace iocpp::detail {
 
     enum class Operation {
         Sleep
@@ -20,4 +20,4 @@ export namespace iocpp {
     template <typename T>
     using Result = std::expected<T, Error>;
 
-} // namespace iocpp
+} // namespace iocpp::detail

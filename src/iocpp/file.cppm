@@ -6,7 +6,7 @@ export module iocpp.file;
 
 import std;
 
-export namespace iocpp {
+export namespace iocpp::detail {
 
     class File {
     public:
@@ -68,4 +68,4 @@ export namespace iocpp {
         int m_native_handle{ INVALID_HANDLE };
     };
 
-} // namespace iocpp
+} // namespace iocpp::detail
